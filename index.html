@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none';" />
+  <title>Collection Completion Dashboard</title>
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --primary: #1e3a8a;
+      --primary-light: #eff6ff;
+      --success: #15803d;
+      --success-bg: #dcfce7;
+      --warning: #b45309;
+      --warning-bg: #fef3c7;
+      --danger: #b91c1c;
+      --danger-bg: #fee2e2;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+
+    .container {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 20px 20px 56px;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 12px;
+      margin-bottom: 10px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      margin: 3px 0 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .meta-badge {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .meta-badge strong { color: var(--text); }
+
+    /* Locked / Pinned Top KPI Bar */
+    .kpi-sticky-bar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--bg);
+      padding: 10px 0 14px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sticky-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .scope-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+
+    .scope-label span {
+      color: var(--primary);
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(185px, 1fr));
+      gap: 12px;
+      overflow-x: auto;
+    }
+
+    .kpi-card {
+      appearance: none;
+      text-align: left;
+      font-family: inherit;
+      width: 100%;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 15px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+      cursor: pointer;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    }
+
+    .kpi-card:hover {
+      border-color: #93c5fd;
+      box-shadow: 0 4px 10px rgba(30, 58, 138, 0.08);
+    }
+
+    .kpi-card.active {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.15);
+    }
+
+    .kpi-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .kpi-value {
+      font-size: 1.55rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    .kpi-sub {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .kpi-hint {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .kpi-card.bottleneck .kpi-value {
+      font-size: 1.28rem;
+      color: var(--danger);
+    }
+
+    /* Sections & Cards */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+
+    .card-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .title-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--primary);
+    }
+
+    .active-filter-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--primary-light);
+      color: var(--primary);
+      border: 1px solid #bfdbfe;
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 0.76rem;
+      font-weight: 600;
+    }
+
+    .clear-btn {
+      appearance: none;
+      border: none;
+      background: var(--primary);
+      color: #ffffff;
+      border-radius: 999px;
+      padding: 1px 7px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .clear-btn:hover { background: #1e40af; }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    select, input[type="text"] {
+      padding: 6px 11px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    input[type="text"] { font-weight: 400; }
+
+    select:focus, input[type="text"]:focus {
+      outline: 2px solid #93c5fd;
+      border-color: var(--primary);
+    }
+
+    /* 2-Axis Scrollable Table Container (Up/Down + Left/Right) */
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      overflow-y: auto;
+      max-height: 360px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .table-wrap.explorer-wrap {
+      max-height: 520px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.84rem;
+    }
+
+    th, td {
+      padding: 9px 12px;
+      text-align: right;
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid #f1f5f9;
+      white-space: nowrap;
+      background: var(--surface);
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th:first-child, td:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      text-align: left;
+      font-weight: 600;
+      border-right: 1px solid var(--border);
+    }
+
+    thead th:first-child {
+      z-index: 4;
+      background: #f8fafc;
+    }
+
+    tbody tr:hover td {
+      background: #f8fafc;
+    }
+
+    tr.total-row td {
+      background: #f1f5f9;
+      font-weight: 700;
+      border-top: 2px solid var(--border);
+    }
+
+    .bar-cell {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      min-width: 160px;
+    }
+
+    .bar-track {
+      flex: 1;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+      max-width: 120px;
+    }
+
+    .bar-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 999px;
+    }
+
+    .pct-pill {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-weight: 600;
+      font-size: 0.78rem;
+      min-width: 54px;
+      text-align: center;
+    }
+    .pct-high { background: var(--success-bg); color: var(--success); }
+    .pct-mid  { background: var(--warning-bg); color: var(--warning); }
+    .pct-low  { background: var(--danger-bg); color: var(--danger); }
+    .pct-zero { background: #f1f5f9; color: var(--muted); }
+
+    .status-badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+    .status-done { background: var(--success-bg); color: var(--success); }
+    .status-wait { background: #f1f5f9; color: var(--muted); }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(540px, 1fr));
+      gap: 20px;
+    }
+
+    @media (max-width: 600px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    .error-banner {
+      background: var(--danger-bg);
+      color: var(--danger);
+      padding: 14px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      display: none;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="errorBanner" class="error-banner"></div>
+
+    <header>
+      <div>
+        <h1>COLLECTION COMPLETION DASHBOARD</h1>
+        <p class="subtitle">Source: Sanitized DB STATUS snapshot (Click any locked KPI card to jump & filter SKUs)</p>
+      </div>
+      <div class="meta-badge">
+        Last Synced: <strong id="lastUpdated">Loading...</strong>
+      </div>
+    </header>
+
+    <!-- Locked Top KPI Bar + Master Season Filter -->
+    <div class="kpi-sticky-bar" id="kpiStickyBar">
+      <div class="sticky-toolbar">
+        <div class="scope-label">Active KPI & Explorer Scope: <span id="activeSeasonLabel">OVERALL</span></div>
+        <div class="controls">
+          <label for="seasonFilter" style="font-size:0.78rem;color:var(--muted);font-weight:700;">SEASON FILTER:</label>
+          <select id="seasonFilter"></select>
+        </div>
+      </div>
+
+      <section class="kpi-grid" aria-label="Key Performance Indicators">
+        <button type="button" class="kpi-card active" data-kpi="ALL">
+          <div class="kpi-label">Total Active SKU</div>
+          <div class="kpi-value" id="kpiTotal">-</div>
+          <div class="kpi-sub">
+            <span id="kpiTotalSub">All active collections</span>
+            <span class="kpi-hint">View →</span>
+          </div>
+        </button>
+
+        <button type="button" class="kpi-card" data-kpi="COMPLETE_7">
+          <div class="kpi-label">SKU Complete (7/7)</div>
+          <div class="kpi-value" id="kpiComplete">-</div>
+          <div class="kpi-sub">
+            <span>All 7 stages DONE</span>
+            <span class="kpi-hint">Filter →</span>
+          </div>
+        </button>
+
+        <button type="button" class="kpi-card" data-kpi="IN_PROGRESS">
+          <div class="kpi-label">Overall Completion</div>
+          <div class="kpi-value" id="kpiOverall">-</div>
+          <div class="kpi-sub">
+            <span id="kpiOverallSub">Started SKUs</span>
+            <span class="kpi-hint">Filter →</span>
+          </div>
+        </button>
+
+        <button type="button" class="kpi-card bottleneck" data-kpi="BOTTLENECK">
+          <div class="kpi-label">Bottleneck Stage</div>
+          <div class="kpi-value" id="kpiBottleneck">-</div>
+          <div class="kpi-sub">
+            <span id="kpiBottleneckSub">Lowest stage completion</span>
+            <span class="kpi-hint">Filter →</span>
+          </div>
+        </button>
+
+        <button type="button" class="kpi-card" data-kpi="NOT_STARTED">
+          <div class="kpi-label">SKU Not Started</div>
+          <div class="kpi-value" id="kpiNotStarted">-</div>
+          <div class="kpi-sub">
+            <span>0 of 7 stages DONE</span>
+            <span class="kpi-hint">Filter →</span>
+          </div>
+        </button>
+      </section>
+    </div>
+
+    <!-- Progress Per Stage -->
+    <section class="card">
+      <div class="card-header">
+        <h2>Progress Per Stage — <span id="stageSeasonTitle">OVERALL</span></h2>
+      </div>
+      <div class="table-wrap">
+        <table id="stageTable">
+          <thead>
+            <tr>
+              <th>Stage</th>
+              <th>Done</th>
+              <th>Waiting</th>
+              <th>% Complete</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Matrix Breakdowns (Full Collection Overview) -->
+    <section class="card">
+      <div class="card-header">
+        <h2>By Collection Type</h2>
+      </div>
+      <div class="table-wrap" id="collectionTypeTable"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <h2>By Season</h2>
+      </div>
+      <div class="table-wrap" id="seasonTable"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <h2>By Category</h2>
+      </div>
+      <div class="table-wrap" id="categoryTable"></div>
+    </section>
+
+    <div class="grid-2">
+      <section class="card">
+        <div class="card-header">
+          <h2>By Style Status</h2>
+        </div>
+        <div class="table-wrap" id="styleStatusTable"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>By Material</h2>
+        </div>
+        <div class="table-wrap" id="materialTable"></div>
+      </section>
+    </div>
+
+    <!-- SKU Drill-down Explorer -->
+    <section class="card" id="skuExplorerCard">
+      <div class="card-header">
+        <div class="title-group">
+          <h2>SKU Status Explorer (<span id="explorerCount">0</span>)</h2>
+          <span id="activeFilterBadge" class="active-filter-pill" style="display:none;">
+            <span id="activeFilterText"></span>
+            <button type="button" class="clear-btn" id="clearKpiBtn" title="Clear KPI Filter">×</button>
+          </span>
+        </div>
+        <div class="controls">
+          <input type="text" id="searchInput" placeholder="Search SKU or Item Name..." />
+          <select id="explorerStage">
+            <option value="ALL">All Stages</option>
+          </select>
+          <select id="explorerStatus">
+            <option value="ALL">All Statuses</option>
+            <option value="WAITING">WAITING</option>
+            <option value="DONE">DONE</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap explorer-wrap" id="explorerScrollBox">
+        <table id="skuExplorerTable">
+          <thead>
+            <tr>
+              <th>SKU</th>
+              <th>Item Name</th>
+              <th>Season</th>
+              <th>Category</th>
+              <th>Style</th>
+              <th>Material</th>
+              <th>SAMPLE</th>
+              <th>DDS</th>
+              <th>CONS</th>
+              <th>SEMIFIN.</th>
+              <th>BOM</th>
+              <th>PRICE</th>
+              <th>SYSTEM</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    let RAW_DATA = null;
+    let ACTIVE_KPI = "ALL";
+    let DETECTED_BOTTLENECK = "PRICE COLL";
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function fmtPct(ratio) {
+      return (ratio * 100).toFixed(1) + "%";
+    }
+
+    function pctClass(ratio) {
+      if (ratio >= 0.75) return "pct-high";
+      if (ratio >= 0.25) return "pct-mid";
+      if (ratio > 0) return "pct-low";
+      return "pct-zero";
+    }
+
+    function getSeasonRecords(records, selectedSeason) {
+      return selectedSeason === "OVERALL"
+        ? records
+        : records.filter(r => r.seasonLabel === selectedSeason);
+    }
+
+    function renderKPIs(records, stages, selectedSeason) {
+      const scoped = getSeasonRecords(records, selectedSeason);
+      const total = scoped.length;
+      let complete7 = 0;
+      let notStarted = 0;
+      let totalDoneCells = 0;
+
+      const stageDoneCounts = Object.fromEntries(stages.map(s => [s, 0]));
+
+      for (const r of scoped) {
+        let doneForSku = 0;
+        for (const s of stages) {
+          if (r.stages[s] === "DONE") {
+            doneForSku++;
+            totalDoneCells++;
+            stageDoneCounts[s]++;
+          }
+        }
+        // Match Excel F5: COUNTIF('DB STATUS'!$AR$2:$AY$2000,"DONE") / (B5 * 7)
+        if (r.bdsDone) {
+          totalDoneCells++;
+        }
+        if (doneForSku === stages.length) complete7++;
+        if (doneForSku === 0) notStarted++;
+      }
+
+      const startedCount = total - notStarted;
+      const overallRatio = total > 0 ? totalDoneCells / (total * stages.length) : 0;
+
+      let bottleneckStage = "-";
+      let minRatio = Infinity;
+      for (const s of stages) {
+        const ratio = total > 0 ? stageDoneCounts[s] / total : 0;
+        if (ratio < minRatio) {
+          minRatio = ratio;
+          bottleneckStage = s;
+        }
+      }
+      DETECTED_BOTTLENECK = bottleneckStage;
+
+      document.getElementById("activeSeasonLabel").textContent = selectedSeason;
+      document.getElementById("stageSeasonTitle").textContent = selectedSeason;
+
+      document.getElementById("kpiTotal").textContent = total.toLocaleString();
+      document.getElementById("kpiTotalSub").textContent =
+        selectedSeason === "OVERALL" ? "All active collections" : `Filtered: ${selectedSeason}`;
+      document.getElementById("kpiComplete").textContent = complete7.toLocaleString();
+      document.getElementById("kpiOverall").textContent = fmtPct(overallRatio);
+      document.getElementById("kpiOverallSub").textContent = `${startedCount} SKUs in progress`;
+      document.getElementById("kpiBottleneck").textContent = bottleneckStage;
+      document.getElementById("kpiBottleneckSub").textContent =
+        total > 0 ? `${fmtPct(minRatio)} (${stageDoneCounts[bottleneckStage]}/${total})` : "";
+      document.getElementById("kpiNotStarted").textContent = notStarted.toLocaleString();
+    }
+
+    function renderStageTable(records, stages, selectedSeason) {
+      const filtered = getSeasonRecords(records, selectedSeason);
+
+      const tbody = document.querySelector("#stageTable tbody");
+      let totalDone = 0;
+      let totalWaiting = 0;
+
+      const rowsHtml = stages.map(stage => {
+        const done = filtered.filter(r => r.stages[stage] === "DONE").length;
+        const waiting = filtered.length - done;
+        const ratio = filtered.length > 0 ? done / filtered.length : 0;
+        totalDone += done;
+        totalWaiting += waiting;
+
+        return `
+          <tr>
+            <td>${escapeHtml(stage)}</td>
+            <td>${done}</td>
+            <td>${waiting}</td>
+            <td>
+              <div class="bar-cell">
+                <div class="bar-track"><div class="bar-fill" style="width:${(ratio * 100).toFixed(1)}%"></div></div>
+                <span class="pct-pill ${pctClass(ratio)}">${fmtPct(ratio)}</span>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      const totalRatio = (totalDone + totalWaiting) > 0 ? totalDone / (totalDone + totalWaiting) : 0;
+      const summaryHtml = `
+        <tr class="total-row">
+          <td>TOTAL (${filtered.length} SKUs)</td>
+          <td>${totalDone}</td>
+          <td>${totalWaiting}</td>
+          <td>
+            <div class="bar-cell">
+              <div class="bar-track"><div class="bar-fill" style="width:${(totalRatio * 100).toFixed(1)}%"></div></div>
+              <span class="pct-pill ${pctClass(totalRatio)}">${fmtPct(totalRatio)}</span>
+            </div>
+          </td>
+        </tr>
+      `;
+
+      tbody.innerHTML = rowsHtml + summaryHtml;
+    }
+
+    function renderBreakdownMatrix(containerId, labelHeader, records, stages, groupFn, sortByCount = false) {
+      const groups = new Map();
+
+      for (const r of records) {
+        const key = groupFn(r) || "UNSPECIFIED";
+        if (!groups.has(key)) {
+          groups.set(key, {
+            label: key,
+            skuCount: 0,
+            stageDone: Object.fromEntries(stages.map(s => [s, 0]))
+          });
+        }
+        const g = groups.get(key);
+        g.skuCount++;
+        for (const s of stages) {
+          if (r.stages[s] === "DONE") g.stageDone[s]++;
+        }
+      }
+
+      let groupList = Array.from(groups.values());
+      if (sortByCount) {
+        groupList.sort((a, b) => b.skuCount - a.skuCount);
+      }
+
+      const totalSkus = records.length;
+      const totalStageDone = Object.fromEntries(stages.map(s => [s, 0]));
+
+      const bodyRows = groupList.map(g => {
+        let sumRatios = 0;
+        const stageCells = stages.map(s => {
+          totalStageDone[s] += g.stageDone[s];
+          const ratio = g.skuCount > 0 ? g.stageDone[s] / g.skuCount : 0;
+          sumRatios += ratio;
+          return `<td><span class="pct-pill ${pctClass(ratio)}">${fmtPct(ratio)}</span></td>`;
+        }).join("");
+
+        const overallGroupRatio = stages.length > 0 ? sumRatios / stages.length : 0;
+        return `
+          <tr>
+            <td>${escapeHtml(g.label)}</td>
+            <td>${g.skuCount}</td>
+            ${stageCells}
+            <td><strong>${fmtPct(overallGroupRatio)}</strong></td>
+          </tr>
+        `;
+      }).join("");
+
+      let sumTotalRatios = 0;
+      const totalStageCells = stages.map(s => {
+        const ratio = totalSkus > 0 ? totalStageDone[s] / totalSkus : 0;
+        sumTotalRatios += ratio;
+        return `<td>${fmtPct(ratio)}</td>`;
+      }).join("");
+      const grandOverall = stages.length > 0 ? sumTotalRatios / stages.length : 0;
+
+      document.getElementById(containerId).innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>${escapeHtml(labelHeader)}</th>
+              <th>SKU</th>
+              ${stages.map(s => `<th>${escapeHtml(s)}</th>`).join("")}
+              <th>OVERALL</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${bodyRows}
+            <tr class="total-row">
+              <td>TOTAL</td>
+              <td>${totalSkus}</td>
+              ${totalStageCells}
+              <td>${fmtPct(grandOverall)}</td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
+
+    function updateFilterUI() {
+      document.querySelectorAll(".kpi-card").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.kpi === ACTIVE_KPI);
+      });
+
+      const badge = document.getElementById("activeFilterBadge");
+      const text = document.getElementById("activeFilterText");
+      const labels = {
+        COMPLETE_7: "Filter: SKU Complete (7/7 DONE)",
+        IN_PROGRESS: "Filter: In-Progress SKUs (≥ 1 Stage DONE)",
+        BOTTLENECK: `Filter: Bottleneck (${DETECTED_BOTTLENECK} = WAITING)`,
+        NOT_STARTED: "Filter: SKU Not Started (0/7 DONE)"
+      };
+
+      if (ACTIVE_KPI !== "ALL" && labels[ACTIVE_KPI]) {
+        badge.style.display = "inline-flex";
+        text.textContent = labels[ACTIVE_KPI];
+      } else {
+        badge.style.display = "none";
+      }
+    }
+
+    function applyKpiCardSelection(kpiType) {
+      ACTIVE_KPI = kpiType;
+
+      const stageSelect = document.getElementById("explorerStage");
+      const statusSelect = document.getElementById("explorerStatus");
+
+      if (kpiType === "BOTTLENECK") {
+        stageSelect.value = DETECTED_BOTTLENECK;
+        statusSelect.value = "WAITING";
+      } else {
+        stageSelect.value = "ALL";
+        statusSelect.value = "ALL";
+      }
+
+      updateFilterUI();
+      renderSkuExplorer();
+
+      const scrollBox = document.getElementById("explorerScrollBox");
+      if (scrollBox) {
+        scrollBox.scrollTop = 0;
+        scrollBox.scrollLeft = 0;
+      }
+      const stickyBar = document.getElementById("kpiStickyBar");
+      const explorerCard = document.getElementById("skuExplorerCard");
+      const offset = stickyBar ? stickyBar.offsetHeight + 14 : 150;
+      const targetY = explorerCard.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top: targetY, behavior: "smooth" });
+    }
+
+    function renderSkuExplorer() {
+      if (!RAW_DATA) return;
+      const { records, stages } = RAW_DATA;
+      const season = document.getElementById("seasonFilter").value;
+      const query = document.getElementById("searchInput").value.trim().toLowerCase();
+      const stageFilter = document.getElementById("explorerStage").value;
+      const statusFilter = document.getElementById("explorerStatus").value;
+
+      const filtered = records.filter(r => {
+        if (season !== "OVERALL" && r.seasonLabel !== season) return false;
+        if (query && !r.sku.toLowerCase().includes(query) && !r.itemName.toLowerCase().includes(query)) {
+          return false;
+        }
+
+        const stageVals = Object.values(r.stages);
+        if (ACTIVE_KPI === "COMPLETE_7" && !stageVals.every(v => v === "DONE")) return false;
+        if (ACTIVE_KPI === "IN_PROGRESS" && !stageVals.some(v => v === "DONE")) return false;
+        if (ACTIVE_KPI === "NOT_STARTED" && !stageVals.every(v => v === "WAITING")) return false;
+
+        if (stageFilter !== "ALL" && statusFilter !== "ALL") {
+          if (r.stages[stageFilter] !== statusFilter) return false;
+        } else if (stageFilter === "ALL" && statusFilter !== "ALL") {
+          if (statusFilter === "DONE" && !stageVals.every(v => v === "DONE")) return false;
+          if (statusFilter === "WAITING" && !stageVals.some(v => v === "WAITING")) return false;
+        }
+        return true;
+      });
+
+      document.getElementById("explorerCount").textContent = filtered.length;
+
+      const tbody = document.querySelector("#skuExplorerTable tbody");
+      tbody.innerHTML = filtered.map(r => {
+        const stageCells = stages.map(s => {
+          const isDone = r.stages[s] === "DONE";
+          return `<td><span class="status-badge ${isDone ? "status-done" : "status-wait"}">${isDone ? "DONE" : "WAIT"}</span></td>`;
+        }).join("");
+
+        return `
+          <tr>
+            <td>${escapeHtml(r.sku)}</td>
+            <td style="text-align:left;">${escapeHtml(r.itemName)}</td>
+            <td>${escapeHtml(r.seasonLabel)}</td>
+            <td>${escapeHtml(r.category)}</td>
+            <td>${escapeHtml(r.styleStatus)}</td>
+            <td>${escapeHtml(r.material)}</td>
+            ${stageCells}
+          </tr>
+        `;
+      }).join("");
+    }
+
+    async function init() {
+      try {
+        const res = await fetch("./data.json", { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        RAW_DATA = await res.json();
+
+        const { records, stages, generatedAt } = RAW_DATA;
+        document.getElementById("lastUpdated").textContent = new Date(generatedAt).toLocaleString();
+
+        const seasons = ["OVERALL", ...new Set(records.map(r => r.seasonLabel).filter(Boolean))];
+        const seasonSelect = document.getElementById("seasonFilter");
+        seasonSelect.innerHTML = seasons
+          .map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`)
+          .join("");
+
+        const explorerStage = document.getElementById("explorerStage");
+        explorerStage.innerHTML += stages
+          .map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`)
+          .join("");
+
+        renderKPIs(records, stages, "OVERALL");
+        renderStageTable(records, stages, "OVERALL");
+
+        renderBreakdownMatrix(
+          "collectionTypeTable",
+          "Collection Type",
+          records,
+          stages,
+          r => r.collectionType === "WS EXCLUSIVE" && r.requestedBy
+            ? `WS EXCLUSIVE ${r.requestedBy}`
+            : r.collectionType
+        );
+
+        renderBreakdownMatrix("seasonTable", "Season", records, stages, r => r.seasonLabel);
+        renderBreakdownMatrix("categoryTable", "Category", records, stages, r => r.category, true);
+        renderBreakdownMatrix("styleStatusTable", "Style Status", records, stages, r => r.styleStatus);
+        renderBreakdownMatrix("materialTable", "Material", records, stages, r => r.material);
+
+        renderSkuExplorer();
+
+        document.querySelectorAll(".kpi-card").forEach(card => {
+          card.addEventListener("click", () => applyKpiCardSelection(card.dataset.kpi));
+        });
+
+        document.getElementById("clearKpiBtn").addEventListener("click", () => {
+          ACTIVE_KPI = "ALL";
+          document.getElementById("explorerStage").value = "ALL";
+          document.getElementById("explorerStatus").value = "ALL";
+          updateFilterUI();
+          renderSkuExplorer();
+        });
+
+        seasonSelect.addEventListener("change", () => {
+          const selectedSeason = seasonSelect.value;
+          renderKPIs(records, stages, selectedSeason);
+          renderStageTable(records, stages, selectedSeason);
+          // Re-sync bottleneck stage filter if Bottleneck card is currently active
+          if (ACTIVE_KPI === "BOTTLENECK") {
+            document.getElementById("explorerStage").value = DETECTED_BOTTLENECK;
+            document.getElementById("explorerStatus").value = "WAITING";
+          }
+          updateFilterUI();
+          renderSkuExplorer();
+        });
+
+        document.getElementById("searchInput").addEventListener("input", renderSkuExplorer);
+        document.getElementById("explorerStage").addEventListener("change", () => {
+          ACTIVE_KPI = "ALL";
+          updateFilterUI();
+          renderSkuExplorer();
+        });
+        document.getElementById("explorerStatus").addEventListener("change", () => {
+          ACTIVE_KPI = "ALL";
+          updateFilterUI();
+          renderSkuExplorer();
+        });
+      } catch (err) {
+        const banner = document.getElementById("errorBanner");
+        banner.style.display = "block";
+        banner.textContent = "Unable to load data.json. Make sure you are viewing this over http://localhost:8000 (not file://).";
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
